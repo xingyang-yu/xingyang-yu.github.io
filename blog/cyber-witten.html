@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cyber-Witten: Cite or Fail · Xingyang Yu</title>
+<meta name="description" content="I built a QA system that may only answer from Edward Witten's papers, cite every claim, and refuse otherwise. Then I measured it until it told the truth about itself.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Cyber-Witten: Cite or Fail">
+<meta property="og:description" content="An AI that answers only from 293 of Witten's papers, cites every claim by paper ID, and refuses when unsupported. A field report: what measurement showed, and a $14 distillation.">
+<meta property="og:url" content="https://xingyangyu.com/blog/cyber-witten.html">
+<meta name="description" content="Building, measuring, and distilling a grounded physics QA system over Edward Witten's papers: what $14 and a citation validator taught me about LLM grounding.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔭</text></svg>">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f8f7f3; --surface: #ffffff; --surface-soft: #f1f0ea;
+    --text: #202124; --muted: #5f6368; --border: #dedbd2;
+    --accent: #7a2e2e; --accent-strong: #642323; --accent-soft: #f3e7e4;
+    --good: #1a7f37; --warn: #9a6700; --bad: #b42318;
+    --shadow: 0 16px 40px rgba(32, 33, 36, 0.08);
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #151719; --surface: #1f2225; --surface-soft: #191c1f;
+    --text: #edeae3; --muted: #b5b0a8; --border: #353a3f;
+    --accent: #d69a8f; --accent-strong: #efb5aa; --accent-soft: #342724;
+    --good: #4ecb71; --warn: #e3b341; --bad: #ff8577;
+    --shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #151719; --surface: #1f2225; --surface-soft: #191c1f;
+      --text: #edeae3; --muted: #b5b0a8; --border: #353a3f;
+      --accent: #d69a8f; --accent-strong: #efb5aa; --accent-soft: #342724;
+      --good: #4ecb71; --warn: #e3b341; --bad: #ff8577;
+      --shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+    }
+  }
+  .theme-toggle {
+    position: fixed; top: 18px; right: 18px; z-index: 10;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface); color: var(--accent);
+    font: inherit; font-size: .85rem; font-weight: 600; box-shadow: var(--shadow);
+    transition: border-color 160ms ease, background 160ms ease;
+  }
+  .theme-toggle:hover { border-color: var(--accent); background: var(--accent-soft); }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px; line-height: 1.7; text-rendering: optimizeLegibility;
+  }
+  .wrap { max-width: 42em; margin: 0 auto; padding: 0 22px 90px; }
+
+  .hero { padding: 64px 0 8px; }
+  .kicker {
+    font-size: .78rem; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--accent); font-weight: 700; margin: 0 0 14px;
+  }
+  h1 {
+    font-family: "New York", "Iowan Old Style", Georgia, "Times New Roman", serif;
+    font-size: 2.6rem; line-height: 1.15; letter-spacing: -0.015em; margin: 0 0 14px;
+  }
+  .dek { font-size: 1.15rem; color: var(--muted); margin: 0 0 22px; line-height: 1.55; }
+  .meta { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 44px; }
+  .meta .byline { color: var(--muted); font-size: .95rem; margin-right: 4px; }
+  .meta a.chip {
+    display: inline-block; padding: 6px 14px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--accent); text-decoration: none; font-size: .88rem; font-weight: 600;
+    transition: border-color 160ms ease, background 160ms ease;
+  }
+  .meta a.chip:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+  a { color: var(--accent); text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent); text-underline-offset: .18em; }
+  a:hover { color: var(--accent-strong); }
+  p { margin: 15px 0; }
+
+  .keybox {
+    background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent);
+    border-radius: 10px; box-shadow: var(--shadow); padding: 20px 24px; margin: 8px 0 20px;
+  }
+  .keybox .label {
+    font-size: .78rem; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--accent); font-weight: 700; display: block; margin-bottom: 8px;
+  }
+  .keybox ul { margin: 10px 0 2px; padding-left: 20px; }
+  .keybox li { margin: 9px 0; }
+  .keybox li::marker { color: var(--accent); font-weight: 700; }
+
+  h2 {
+    font-family: "New York", "Iowan Old Style", Georgia, "Times New Roman", serif;
+    font-size: 1.6rem; line-height: 1.25; margin: 52px 0 14px;
+    counter-increment: sec;
+  }
+  h2::before {
+    content: counter(sec, decimal-leading-zero);
+    display: block; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: .8rem; letter-spacing: .18em; color: var(--accent); font-weight: 700; margin-bottom: 6px;
+  }
+  body { counter-reset: sec; }
+
+  .tablewrap {
+    overflow-x: auto; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: var(--shadow); margin: 20px 0; padding: 6px 10px;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  th { color: var(--muted); font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td:first-child { font-weight: 600; }
+
+  code {
+    background: var(--accent-soft); border-radius: 6px; padding: 1px 7px;
+    font-size: .86em; color: var(--accent-strong);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .good { color: var(--good); font-weight: 700; } .warn { color: var(--warn); font-weight: 700; } .bad { color: var(--bad); font-weight: 700; }
+
+  .pull {
+    font-family: "New York", "Iowan Old Style", Georgia, serif;
+    font-size: 1.35rem; line-height: 1.5; text-align: center;
+    margin: 36px auto; padding: 10px 8px; max-width: 34em; color: var(--text);
+  }
+  .pull em { color: var(--accent); font-style: italic; }
+
+  .foot {
+    margin-top: 54px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: var(--shadow); padding: 18px 22px;
+    color: var(--muted); font-size: .93rem;
+  }
+  .tablenote { font-size: 0.82rem; opacity: 0.72; margin: -0.4rem 0 1.6rem; }
+
+  /* dev log */
+  .devlog h2 { counter-increment: none; }
+  .devlog h2::before { content: "Ongoing"; }
+  .devlog .cl-sub { color: var(--muted); margin: 0 0 6px; }
+  .rel { padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .rel:last-child { border-bottom: none; }
+  .rel-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 2px; }
+  .rel-head .ver { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .rel-head .codename { font-family: "New York", "Iowan Old Style", Georgia, serif; font-weight: 600; font-size: 1.08rem; }
+  .rel-head .rel-date { margin-left: auto; color: var(--muted); font-size: .82rem; font-variant-numeric: tabular-nums; }
+  .rel ul { list-style: none; margin: 9px 0 0; padding: 0; }
+  .rel li { display: flex; gap: 11px; align-items: baseline; margin: 8px 0; font-size: .96rem; }
+  .rel li > span:last-child { flex: 1; }
+  .tag { flex: none; min-width: 84px; text-align: center; font-size: .66rem; font-weight: 700;
+    letter-spacing: .05em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--surface); }
+  .tag.changed { color: var(--muted); }
+  .tag.found { color: var(--accent); }
+  .tag.fix { color: var(--good); }
+  .tag.known { color: var(--warn); }
+  .tag.twist { color: var(--bad); }
+</style>
+<script>
+  (function () {
+    var t = localStorage.getItem("theme");
+    if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+  })();
+</script>
+</head>
+<body>
+<button class="theme-toggle" type="button" aria-label="Switch theme">
+  <span class="theme-icon" aria-hidden="true">◐</span><span>Theme</span>
+</button>
+<div class="wrap">
+
+<header class="hero">
+<p class="kicker">A field report from the AI x physics workbench</p>
+<h1>Cyber-Witten: Cite or Fail</h1>
+<p class="dek">I built a QA system that may only answer from Edward Witten's papers, and then measured it until it told the truth about itself.</p>
+<div class="meta">
+<span class="byline">Xingyang Yu · July 2026</span>
+<a class="chip" href="/cyber-witten/">🔭 Live demo</a>
+<a class="chip" href="https://github.com/xingyang-yu/cyber-witten" rel="noopener" target="_blank">Code</a>
+<a class="chip" href="https://huggingface.co/xingyang-yu/cyber-witten-7b-GGUF" rel="noopener" target="_blank">Model</a>
+</div>
+</header>
+
+<div class="keybox">
+<span class="label">Key results</span>
+The final system works. Ask it a question, and it answers only from Witten's papers, citing by paper ID exactly what it used. When the papers do not support an answer, it refuses instead of guessing. Measured: every citation points to a paper actually retrieved (zero ungrounded), zero uncited answers, and correctness three times the memory-only baseline. The more interesting results are the failures I found on the way there:
+<ul>
+<li>A model answering from pure memory cites papers it was never shown. About half are real papers pulled from memory; the rest are invented (one answer cited an arXiv ID dated two years before arXiv existed). Hand the same model the actual papers, and it swings the other way: 91% of its answers cite nothing at all. A mechanical checker fixes both.</li>
+<li>Showing the model relevant pages destroys refusal. It answers the pages instead of questioning a false premise. From memory alone, it at least hedged.</li>
+<li>My own benchmark was wrong in both directions. 5 of its 24 reference citations pointed at papers missing from the corpus. 2 of its "unanswerable" questions were in fact answerable. Only a mechanical audit caught either.</li>
+<li>For about $14, I trained a small local model that cites by habit, unprompted, better than the stock model being forced by the checker. That worked. It also lost exactly the behaviors its training data did not demonstrate. Training teaches what the data contains, and only that.</li>
+</ul>
+</div>
+
+<h2>Why a Witten-only AI</h2>
+
+<p>Like many people in my field, I have been asking LLMs physics questions and watching them confidently hallucinate about hep-th. Part of the reason is structural. The literature is uneven: foundational papers sit right next to wildly speculative ones. A model trained on the whole web has no way to weight one over the other. For technical questions, I do not just want a fluent model. I want one that <em>knows when it is allowed to speak</em>.</p>
+
+<p>So I spent some weekends building one, and then measured it until I trusted the numbers. The bet: for expert domains, corpus quality and epistemic constraint may matter as much as model size.</p>
+
+<p>For readers coming from the AI side: Edward Witten is widely considered the most influential theoretical physicist of the past half century. He shaped quantum field theory, string theory, and countless other fields in theoretical physics, and he is the only physicist ever awarded the Fields Medal, the top prize in mathematics. There is a standard joke among physics students: if you took a sip of water every time Witten's name came up in a graduate course or a seminar, you would drown. His collected papers are close to a fifty-year map of modern theoretical physics, written to an unusually high standard.</p>
+
+<p>So the corpus is the highest-signal one I can think of. 293 of Witten's papers, spanning 1976–2026. Not his complete works: it is every paper my pipeline could actually fetch. 48 of them are pre-arXiv journal papers, dug out through an INSPIRE / Unpaywall fallback chain, some via OCR (1980s scans don't love being parsed). On top of that, one rule: <strong>answer only from retrieved passages, cite every claim by paper ID, refuse when unsupported.</strong> Cite or fail.</p>
+
+<p>For physics readers, the mechanics in one breath: cut the papers into short passages, and give each passage a vector fingerprint. For each question, fetch the eight nearest passages and hand them to a language model, with the rule above. This pattern is called RAG (retrieval-augmented generation). The opposite mode, a model answering from whatever stuck during its training, is called <em>closed book</em>. Both show up in the tables below.</p>
+
+<p>The retrieval half is standard and deliberately boring (BGE embeddings, exact FAISS search, all local and free). The interesting parts are the instruments around it. A <em>validator</em> checks every citation in an answer against the passages that were actually retrieved. A <em>guardrail</em> runs the validator live: if a draft answer cites a paper that was not retrieved, or cites nothing, the draft goes back with a correction note and the model tries again. A <em>refusal gate</em> can reject a question before the model speaks at all. And an expert-scored evaluation set. There is a <a href="/cyber-witten/">browser demo</a> of the retrieval half on this site (paste your own API key and it will also write guardrail-checked answers). The full pipeline is on <a href="https://github.com/xingyang-yu/cyber-witten" rel="noopener" target="_blank">GitHub</a>.</p>
+
+<h2>A benchmark that audits itself</h2>
+
+<p>To measure anything, I needed a gold set: physics questions with known correct answers and known correct citations. I drafted 24 with a frontier model plus my own judgment. Then I did something that felt pedantic but became the most important step of the project. I wrote a resolver that checks every expected citation against the actual index.</p>
+
+<p><strong>Five of the 24 cited papers were not in the corpus.</strong> And these are not obscure papers: the positive energy theorem proof, Supersymmetry and Morse Theory, the 1988 TQFT paper. My memory of the literature said "obviously in the corpus". The corpus said no. They were pre-arXiv, and my ingestion had missed them. I hand-ingested the missing papers instead of dropping the questions. Lesson one: <em>validate the gold set against the corpus, not against your memory of the literature.</em></p>
+
+<p>The same thing happened with the refusal probes, in the other direction. I wrote 26 questions that should be unanswerable from the corpus: experimental values, other authors' theorems, made-up follow-up papers. A calibration run flagged 7 as suspicious. It was right twice. The corpus really does discuss Perelman's Ricci-flow program, in a 2024 sigma-model paper I had forgotten about. One "unanswerable" probe was even promoted into a gold question. <em>Benchmarks are wrong in both directions until something mechanical audits them.</em></p>
+
+<h2>What measurement actually showed</h2>
+
+<p>Baseline: qwen2.5:7b, an open model small enough to run on my laptop (7B: seven billion parameters, small by today's standards). 23 gold questions, three conditions: closed book (memory only), RAG with nothing enforced (<em>naked</em>), and RAG with the guardrail. The citation columns are computed by the validator. Correctness and refusal are 0–2 scores, graded by me. (An independent second-model review pass triaged the 69 answers first, and caught several holes in my rubric.)</p>
+
+<div class="tablewrap">
+<table>
+<tr><th>condition</th><th class="num">ungrounded cites ↓</th><th class="num">uncited ↓</th><th class="num">cite recall ↑</th><th class="num">correctness ↑ (of 2)</th><th class="num">refusal ↑ (of 2)</th></tr>
+<tr><td>closed book</td><td class="num">0.17</td><td class="num">0.83</td><td class="num">0.05</td><td class="num">0.16</td><td class="num">1.25</td></tr>
+<tr><td>RAG, naked</td><td class="num">0.09</td><td class="num">0.91</td><td class="num">0.00</td><td class="num">0.42</td><td class="num"><span class="bad">0.00</span></td></tr>
+<tr><td>RAG + guardrail</td><td class="num"><span class="good">0.00</span></td><td class="num"><span class="good">0.00</span></td><td class="num"><span class="good">0.64</span></td><td class="num">0.53</td><td class="num"><span class="bad">0.00</span></td></tr>
+</table>
+</div>
+
+<p class="tablenote">Ungrounded cites: share of answers citing a paper that was not retrieved (some are real papers cited from memory, some are invented IDs; the checker treats both the same). Uncited: share citing nothing at all. Cite recall: share of the expected citations recovered. Arrows point the good way.</p>
+
+<p>Four findings. Each comes with a specimen I keep going back to.</p>
+
+<p><strong>1. Closed-book models cite sources they were never shown.</strong> Asked where Witten proposed the 2D-gravity/KdV relation, the closed-book model cited <code>hep-th/8910145</code>, an arXiv ID dated 1989, two years before arXiv existed. Later I checked every ungrounded citation against INSPIRE: about half were real papers pulled from memory, the rest invented, like that impossible ID or the digit-mangle <code>2605.15180</code> became <code>1605.08291</code>. Both kinds look plausible to the eye. Both are easy to catch mechanically, because the check does not ask whether the paper is real, only whether it was retrieved.</p>
+
+<p><strong>2. Given perfect retrieval, the model simply does not cite.</strong> Retrieval found the right papers 94% of the time. The naked model cited them in zero answers. 91% of its answers had no citations at all. The failure mode of small models is not defiance. It is omission. A retry loop that says "your answer cited nothing, here are the allowed IDs" fixes it. Ungrounded citations and omission both drop to zero, and faithfulness (does the answer stay inside what its cited passages say, scored 0–2) jumps from 1.00 to 1.88.</p>
+
+<p><strong>3. Retrieval destroys refusal.</strong> This one I did not expect. On out-of-corpus probes, the closed-book model at least hedges (refusal 1.25 of 2). Both RAG conditions score 0.00. Shown eight relevant-looking passages, the model answers the passages instead of questioning the premise. The same mechanism that suppresses ungrounded citations also suppresses refusal. This is why the final system can refuse <em>before</em> generation (next section). If you ship RAG, be aware: retrieval quality and refusal quality fight each other.</p>
+
+<p><strong>4. Grounded is not the same as right.</strong> With everything on, correctness topped out at 0.53 of 2. My favorite specimen: a fully guardrail-compliant answer said AdS/CFT "was proposed by Maldacena [hep-th/9807109]". The bracket is legal, because that paper was retrieved. The attribution is wrong, because that ID is Witten's theta-dependence paper. Grounding guarantees that claims trace back to retrieved text. It cannot supply physics judgment. That still comes from the model. A 7B stays physics-shallow no matter how disciplined its citations are.</p>
+
+<h2>A reranker that measured more than ranking</h2>
+
+<p>One quirk from the first week kept bothering me. Ask about Chern-Simons theory and the Jones polynomial, and the 1989 originating paper does not make the top five. Standard retrieval fingerprints the question and each passage <em>separately</em>, then matches fingerprints (a bi-encoder: fast, slightly deaf). It prefers the modern lectures, which use both terms together more densely. The paper that started it all showed up at rank 8.</p>
+
+<p>The sharper tool is a cross-encoder: it reads question and passage <em>together</em> and scores the pair. Slower, but it actually reads. Re-ordering the top candidates with one is called reranking. I added that, expecting better coverage. The result was more interesting. Recall@8, the share of questions whose expected paper lands in the top eight passages, did not move (0.94 either way). But the rank of the expected paper improved sharply: 5th to 1st, 6th to 1st on several questions. That matters for models that anchor on early passages.</p>
+
+<p>The unplanned bonus: cross-encoder scores are roughly absolute. Every topic-absent probe scored negative. In-corpus questions scored +2 to +5. That is a free "the corpus has nothing relevant" detector. It became the pre-generation refusal gate: decline before the model speaks.</p>
+
+<p>Calibration showed exactly what the gate is and is not. It detects <em>topical coverage</em>, not answer presence. Questions whose topic is absent (lattice QCD values, biography, made-up results) are refused up front. Near-miss probes, like other authors' theorems on topics Witten wrote about, pass through by design and are handled downstream. No single layer is enough. That observation became the architecture.</p>
+
+<h2>Distilling the reflex, for $14</h2>
+
+<p>The guardrail proves the discipline can be <em>enforced</em>. The last experiment asked whether it can be <em>learned</em>: move the citation reflex from the retry loop into the model itself. The recipe is called distillation. A strong teacher model writes worked examples. A small student model is trained on them until the behavior sticks.</p>
+
+<p>A DeepSeek teacher wrote 2,050 (question, passages, cited-answer) training triples over the corpus. Every one was gated by the same citation validator. That cost about $12. The gold set was strictly held out (the student never trained on it), with an overlap guard that fired 15 times. Training used QLoRA, a budget method: freeze the student, train only a small low-rank correction on top. One rented RTX 4090, about $2. Total: roughly $14.</p>
+
+<p>The pipeline had its bug stories. DeepSeek's V4 models are thinking models. Give them a small token budget, and the whole budget goes to internal reasoning; the visible answer comes back empty. My first pilot generated 293 empty questions, retrieved passages for empty strings, and produced a fake "98% retrieval drift" result that I briefly believed. Measure, then measure your measurement. (Also: the training run finished all 504 steps, and then the GPU pod died of balance exhaustion minutes later. The finished adapter was rescued from the dead pod's disk for pennies, using a CPU-only boot. Rent-a-GPU life.)</p>
+
+<p>Results, on the same 23 held-out questions (columns as in the first table):</p>
+
+<div class="tablewrap">
+<table>
+<tr><th>run</th><th class="num">ungrounded ↓</th><th class="num">uncited ↓</th><th class="num">cite recall ↑</th></tr>
+<tr><td>base, naked</td><td class="num">0.09</td><td class="num">0.91</td><td class="num">0.00</td></tr>
+<tr><td>base + guardrail</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.64</td></tr>
+<tr><td><strong>distilled, naked</strong></td><td class="num"><span class="warn">0.17</span></td><td class="num"><span class="good">0.04</span></td><td class="num"><span class="good">0.78</span></td></tr>
+<tr><td><strong>distilled + guardrail</strong></td><td class="num"><span class="good">0.00</span></td><td class="num"><span class="good">0.00</span></td><td class="num"><span class="good">0.77</span></td></tr>
+</table>
+</div>
+
+<p><strong>The reflex transferred.</strong> Naked, the distilled model cites unprompted in 96% of answers. Its citation recall (0.78) beats the base model <em>with the guardrail forcing it</em> (0.64). What used to need a retry loop is now an instinct. The guardrail still earns its place. Citing more means more chances to cite something that was not retrieved: the naked ungrounded-citation rate rose to 0.17, sometimes recalling real IDs seen in training. The guardrail zeroes that, at no recall cost.</p>
+
+<p><strong>And the regression is the real lesson.</strong> All 2,050 training samples were positive demonstrations. None demonstrated refusal. The distilled model kept refusal where the topic supports it ("the essay makes no mention of GPT-style scaling laws", correctly cited: a textbook decline). But it collapsed on false premises. Asked about a fictional 2027 follow-up paper, it asserted the fictional result <em>while citing the real 2026 paper</em>. It looks grounded, but it is fake: the most dangerous failure I measured all summer, produced by my own fine-tune. Distillation teaches what the data contains, and only that. The refusal gate catches three of the four probes before the model speaks. That is the point:</p>
+
+<div class="tablewrap">
+<table>
+<tr><th>failure mode</th><th>caught by</th></tr>
+<tr><td>topic absent from corpus</td><td>refusal gate (pre-generation)</td></tr>
+<tr><td>ungrounded citation</td><td>validator + guardrail (post-generation)</td></tr>
+<tr><td>substantive answer, no citations</td><td>guardrail (omission check)</td></tr>
+<tr><td>claim drifts beyond the passage</td><td>faithfulness scoring (human)</td></tr>
+<tr><td>grounded but physically wrong</td><td>correctness scoring (human)</td></tr>
+</table>
+</div>
+
+<p class="pull">The system is not the model. The system is the stack.<br>The evaluation instruments <em>are</em> the product.</p>
+
+<h2>Coda: costs, and what a physicist takes away</h2>
+
+<p>Total spend: about $12 of teacher API and $2 of GPU rental. Everything else ran free and local, on a fanless MacBook Air that served as ingestion cluster, evaluation rig, and web server. The distilled model is on <a href="https://huggingface.co/xingyang-yu/cyber-witten-7b-GGUF" rel="noopener" target="_blank">HuggingFace</a>, with a hard warning in the model card: it is a RAG component, not a chatbot. Without passages in front of it, it just cites papers it was never given, confidently.</p>
+
+<p>I came to this project from theoretical physics, expecting to learn engineering. The surprise was how much transferred the other way. Every save came from research habits, not code: measure before building, hold out your gold set, distrust numbers you have not traced to the source, assume your benchmark is wrong until an instrument says otherwise. The plumbing (pipelines, checkpoints, retry loops) can be learned in a season. Knowing what counts as evidence takes longer. Physics turns out to be good training for exactly that.</p>
+
+<section class="devlog" id="devlog">
+<h2>Dev log</h2>
+<p class="cl-sub">A running, honest record of what changed and what broke since this post went up. Newest first.</p>
+
+<div class="rel">
+  <div class="rel-head"><span class="ver">v0.6</span><span class="codename">Corpus Archaeology</span><span class="rel-date">2026-07-20</span></div>
+  <ul>
+    <li><span class="tag changed">changed</span><span>Shareable corpus <em>manifest</em> + a self-serve completion pipeline: clone the repo and grow your own corpus from arXiv (free) plus your own journal access. No copyrighted full text is redistributed.</span></li>
+    <li><span class="tag found">found</span><span>A fuzzy author query had quietly smuggled the astronomer <em>C.E.C. Witten</em>'s galaxy papers into the corpus. Fixed with exact INSPIRE disambiguation (<code>Edward.Witten.1</code>), and recovered 5 pre-arXiv-era articles a naive TeX parser had been dropping.</span></li>
+    <li><span class="tag known">known issue</span><span>88 paywalled pre-1991 papers still need bring-your-own subscription to ingest.</span></li>
+  </ul>
+</div>
+
+<div class="rel">
+  <div class="rel-head"><span class="ver">v0.5</span><span class="codename">Provenance Engine</span><span class="rel-date">2026-07-20</span></div>
+  <ul>
+    <li><span class="tag changed">changed</span><span>Automated the citation audit into a per-condition metric: grounded / ungrounded-in-corpus / ungrounded-off-corpus-real / fabricated.</span></li>
+    <li><span class="tag found">found</span><span>Failures don't vanish, they <strong>redistribute</strong> across conditions. Two "fabrications" turned out to be single-digit slips of one real corpus paper.</span></li>
+  </ul>
+</div>
+
+<div class="rel">
+  <div class="rel-head"><span class="ver">v0.4</span><span class="codename">Controlled Reversal</span><span class="rel-date">2026-07-19</span></div>
+  <ul>
+    <li><span class="tag changed">changed</span><span>A retrieval-aware counterfactual test: identical passages, paired with a supported vs a false-premise twin.</span></li>
+    <li><span class="tag found">found</span><span>Fixed authoritative passages collapse refusal on a false premise (~1.25 &rarr; 0.30, controlled). Retrieval really does erode "I don't know."</span></li>
+    <li><span class="tag twist">plot twist</span><span>Distillation <strong>raises</strong> refusal here, the opposite of the post's finding. So "distillation regressed refusal" is only half the story: the effect is non-monotonic and depends on how the probe is built.</span></li>
+  </ul>
+</div>
+
+<div class="rel">
+  <div class="rel-head"><span class="ver">v0.3</span><span class="codename">Truth in Labeling</span><span class="rel-date">2026-07-19</span></div>
+  <ul>
+    <li><span class="tag fix">fix</span><span>The "fabricated citations" metric was overstated: ~half of the flagged cites are <em>real</em> papers cited off-passage (INSPIRE-verified), not invented IDs. Relabeled fabricated &rarr; <strong>ungrounded</strong> throughout the post.</span></li>
+    <li><span class="tag known">bonus bug</span><span>The audit script reproduced the very date-parsing bug it was auditing for. 🤡 Logged on purpose.</span></li>
+  </ul>
+</div>
+
+<div class="rel">
+  <div class="rel-head"><span class="ver">v0.2</span><span class="codename">The Apprentice</span><span class="rel-date">2026-07</span></div>
+  <ul>
+    <li><span class="tag changed">changed</span><span>Distilled a local 7B (<code>cyber-witten-7b</code>) from the RAG teacher for $14.</span></li>
+    <li><span class="tag found">found</span><span>Distillation carries the terseness but (on the probe set) collapses refusal on false premises. See v0.4 for the twist.</span></li>
+  </ul>
+</div>
+
+<div class="rel">
+  <div class="rel-head"><span class="ver">v0.1</span><span class="codename">First Light</span><span class="rel-date">2026-07</span></div>
+  <ul>
+    <li><span class="tag changed">changed</span><span>RAG over Witten's corpus; strict cite-or-fail with explicit refusal.</span></li>
+    <li><span class="tag found">found</span><span>A general model leaves the corpus and gets fluently, confidently wrong. Grounding + refusal is the antidote, and the whole reason this project exists.</span></li>
+  </ul>
+</div>
+</section>
+
+<p class="foot">
+Try it: <a href="/cyber-witten/">the browser demo</a> (retrieval free, answers with your own key) ·
+<a href="https://github.com/xingyang-yu/cyber-witten" rel="noopener" target="_blank">full pipeline on GitHub</a> ·
+<a href="https://huggingface.co/xingyang-yu/cyber-witten-7b-GGUF" rel="noopener" target="_blank">the distilled model</a>.
+Questions or corrections: <a href="mailto:xingyangy@vt.edu">email me</a>.
+<br><br>
+Yes, an AI helped me edit this post. It did not get to grade its own homework: every number comes from the eval runs, and the mistakes in the project were mine.
+</p>
+
+</div>
+<script>
+  (function () {
+    var root = document.documentElement;
+    var btn = document.querySelector(".theme-toggle");
+    var icon = btn.querySelector(".theme-icon");
+    function current() {
+      if (root.dataset.theme === "dark" || root.dataset.theme === "light") return root.dataset.theme;
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    function paint() { icon.textContent = current() === "dark" ? "☼" : "◐"; }
+    btn.addEventListener("click", function () {
+      var next = current() === "dark" ? "light" : "dark";
+      root.dataset.theme = next;
+      localStorage.setItem("theme", next);
+      paint();
+    });
+    paint();
+  })();
+</script>
+</body>
+</html>

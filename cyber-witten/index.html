@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cyber-Witten · search Witten's papers</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔭</text></svg>">
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #30363d; --fg: #e6edf3;
+    --muted: #8b949e; --accent: #6ea8fe; --accent-2: #a371f7;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#f6f8fa; --panel:#fff; --border:#d0d7de; --fg:#1f2328; --muted:#636c76; --accent:#0969da; --accent-2:#8250df; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg); line-height: 1.55;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 32px 20px 80px; }
+  h1 { font-size: 1.7rem; margin: 0 0 6px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .sub a { color: var(--accent); }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  #q {
+    flex: 1 1 320px; min-width: 0; padding: 12px 14px; font-size: 1rem;
+    background: var(--panel); color: var(--fg); border: 1px solid var(--border); border-radius: 10px;
+  }
+  #q:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  button {
+    padding: 12px 20px; font-size: 1rem; font-weight: 600; cursor: pointer;
+    background: var(--accent); color: #fff; border: 0; border-radius: 10px;
+  }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .k { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .9rem; }
+  .k input { width: 120px; }
+  .examples { margin: 14px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font-size: .85rem; color: var(--accent); background: transparent; cursor: pointer;
+    border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px;
+  }
+  #status { margin: 20px 0; color: var(--muted); font-size: .95rem; }
+  .hit { padding: 14px 0; border-top: 1px solid var(--border); }
+  .hit .head { font-size: .95rem; }
+  .hit .sim { color: var(--accent-2); font-variant-numeric: tabular-nums; font-weight: 600; }
+  .hit a { color: var(--accent); text-decoration: none; }
+  .hit a:hover { text-decoration: underline; }
+  .hit .title { font-weight: 600; }
+  .hit .snip { color: var(--muted); font-size: .9rem; margin-top: 4px; }
+  .foot { margin-top: 40px; color: var(--muted); font-size: .85rem; }
+  .foot a { color: var(--accent); }
+  .byok { margin: 16px 0 0; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); }
+  .byok summary { cursor: pointer; padding: 10px 14px; color: var(--accent); font-size: .95rem; }
+  .byok-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; padding: 4px 14px 0; }
+  .byok-grid label { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; color: var(--muted); }
+  .byok-grid input, .byok-grid select {
+    padding: 8px 10px; font-size: .9rem; background: var(--bg); color: var(--fg);
+    border: 1px solid var(--border); border-radius: 8px; min-width: 0;
+  }
+  .byok-note { color: var(--muted); font-size: .8rem; padding: 8px 14px 12px; margin: 0; }
+  .answerbox { margin: 18px 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); }
+  .answerbox .badge { font-size: .85rem; font-weight: 600; }
+  .badge.ok { color: #3fb950; }
+  .badge.warn { color: #d29922; }
+  .badge.err { color: #f85149; }
+  .answerbox .atext { margin-top: 8px; white-space: pre-wrap; font-size: .95rem; }
+  .answerbox .atext a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔭 Cyber-Witten</h1>
+  <p class="sub">
+    Semantic search over <strong>Edward Witten's arXiv papers</strong>. Ask a physics question and
+    this finds the most relevant passages, ranked by meaning. By default it is a
+    <strong>finder</strong>: source passages with arXiv links. Paste <strong>your own API key</strong>
+    under "Grounded answer" and it will also write an answer — required to cite the retrieved
+    passages, checked and retried by a citation validator: <em>cite-or-fail</em>. The full offline
+    version is the <a href="https://github.com/xingyang-yu/cyber-witten" target="_blank" rel="noopener">local app</a>.
+    <br>Everything runs <strong>in your browser</strong> — no server of ours; your key goes only to
+    the provider you choose.
+  </p>
+
+  <div class="controls">
+    <input id="q" type="text" placeholder="Ask about Witten's physics…" disabled autocomplete="off">
+    <label class="k">top-<span id="kval">5</span> <input id="k" type="range" min="1" max="15" value="5"></label>
+    <button id="go" disabled>Search</button>
+  </div>
+  <div class="examples" id="examples"></div>
+
+  <details class="byok" id="byok">
+    <summary>✍️ Grounded answer — bring your own key (optional)</summary>
+    <div class="byok-grid">
+      <label>Provider
+        <select id="prov">
+          <option value="anthropic">Anthropic (Claude)</option>
+          <option value="openai">OpenAI</option>
+          <option value="deepseek">DeepSeek</option>
+          <option value="ollama">Local Ollama (no key)</option>
+          <option value="custom">Custom (OpenAI-compatible)</option>
+        </select>
+      </label>
+      <label>Model <input id="model" autocomplete="off"></label>
+      <label>Base URL <input id="baseurl" autocomplete="off" placeholder="https://…/v1"></label>
+      <label>API key <input id="apikey" type="password" autocomplete="off" placeholder="sk-…"></label>
+    </div>
+    <p class="byok-note">
+      The key lives in this tab only and is sent directly to the provider above — this page has no
+      backend and stores nothing. One answer sends the top-8 passages (≈5k input tokens). The answer
+      must cite passage IDs; fabricated or missing citations trigger one corrective retry, then fail
+      loudly — same guardrail as the local app.
+    </p>
+  </details>
+
+  <div id="status">Loading model and index…</div>
+  <div id="answer"></div>
+  <div id="results"></div>
+
+  <p class="foot">
+    Built with <a href="https://github.com/huggingface/transformers.js" target="_blank" rel="noopener">transformers.js</a>
+    (BGE-small, 384-dim) + brute-force cosine over <span id="nvec">…</span> passages, all client-side.
+    arXiv-only corpus; pre-arXiv papers excluded. <a href="https://github.com/xingyang-yu/cyber-witten" target="_blank" rel="noopener">Source</a> ·
+    <a href="/blog/cyber-witten.html">How it was built and measured</a> ·
+    <a href="/blog/cyber-witten.html#devlog">v0.6 · dev log</a>.
+  </p>
+</div>
+
+<script type="module">
+import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2";
+env.allowLocalModels = false;   // fetch model from the HuggingFace hub
+
+const EXAMPLES = [
+  "What is the relation between Chern-Simons theory and the Jones polynomial?",
+  "How does mirror symmetry relate Calabi-Yau manifolds?",
+  "What is the entropy of a black hole in JT gravity?",
+  "How does electric-magnetic duality enter Seiberg-Witten theory?",
+];
+
+const $ = (id) => document.getElementById(id);
+const statusEl = $("status"), resultsEl = $("results"), answerEl = $("answer");
+const qEl = $("q"), goEl = $("go"), kEl = $("k"), kValEl = $("kval");
+const byokEl = $("byok"), provEl = $("prov"), modelEl = $("model"), baseEl = $("baseurl"), keyEl = $("apikey");
+
+kEl.addEventListener("input", () => { kValEl.textContent = kEl.value; });
+
+let cfg, meta, vectors, dim, N, extractor;
+
+async function boot() {
+  try {
+    const [cfgR, metaR, vecR] = await Promise.all([
+      fetch("data/config.json"), fetch("data/meta.json"), fetch("data/vectors.bin"),
+    ]);
+    cfg = await cfgR.json();
+    meta = await metaR.json();
+    vectors = new Float32Array(await vecR.arrayBuffer());
+    dim = cfg.dim; N = cfg.n;
+    $("nvec").textContent = N.toLocaleString();
+
+    statusEl.textContent = "Loading the embedding model (first time downloads ~30MB)…";
+    extractor = await pipeline("feature-extraction", cfg.model, { quantized: true });
+
+    qEl.disabled = false; goEl.disabled = false;
+    statusEl.textContent = "Ready. Ask a question.";
+    qEl.focus();
+  } catch (e) {
+    statusEl.textContent = "Failed to load: " + e.message;
+  }
+}
+
+async function embed(text) {
+  const out = await extractor(cfg.query_prefix + text, { pooling: "cls", normalize: true });
+  return out.data;   // Float32Array[dim], L2-normalized
+}
+
+function scoreAll(qvec) {
+  const scored = new Array(N);
+  for (let i = 0; i < N; i++) {
+    let s = 0; const off = i * dim;
+    for (let j = 0; j < dim; j++) s += qvec[j] * vectors[off + j];
+    scored[i] = [s, i];
+  }
+  scored.sort((a, b) => b[0] - a[0]);
+  return scored;
+}
+
+// Display view — one hit per PAPER (each paper's best passage), so the list
+// shows k distinct papers instead of k passages of the same one.
+function topPapers(scored, k) {
+  const hits = [], seen = new Set();
+  for (const [s, i] of scored) {
+    const id = meta[i].id;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    hits.push([s, i]);
+    if (hits.length === k) break;
+  }
+  return hits;
+}
+
+function urlFor(id) {
+  return id.startsWith("inspire:")
+    ? "https://inspirehep.net/literature/" + id.slice(8)
+    : "https://arxiv.org/abs/" + id;
+}
+const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+async function search() {
+  const q = qEl.value.trim();
+  if (!q || !extractor) return;
+  statusEl.textContent = "Searching…"; resultsEl.innerHTML = ""; answerEl.innerHTML = "";
+  const t0 = performance.now();
+  const qvec = await embed(q);
+  const scored = scoreAll(qvec);
+  const hits = topPapers(scored, parseInt(kEl.value, 10));
+  statusEl.textContent = `Top ${hits.length} papers · searched ${N.toLocaleString()} passages · ${Math.round(performance.now() - t0)}ms`;
+  resultsEl.innerHTML = hits.map(([s, i]) => {
+    const m = meta[i];
+    return `<div class="hit"><div class="head">
+      <span class="sim">${s.toFixed(3)}</span> ·
+      <a href="${urlFor(m.id)}" target="_blank" rel="noopener">${esc(m.id)}</a>
+      <span style="color:var(--muted)">(${esc(String(m.year))})</span> ·
+      <span class="title">${esc(m.title)}</span></div>
+      <div class="snip">${esc(m.snippet)}…</div></div>`;
+  }).join("");
+  generateAnswer(q, scored);  // no-op unless the BYOK panel is configured
+}
+
+/* ---------------- Grounded answer: bring your own key ---------------- */
+
+const PROVIDERS = {
+  anthropic: { model: "claude-sonnet-4-6", base: "https://api.anthropic.com", needsKey: true },
+  openai:    { model: "gpt-4o-mini",       base: "https://api.openai.com/v1", needsKey: true },
+  deepseek:  { model: "deepseek-chat",     base: "https://api.deepseek.com/v1", needsKey: true },
+  ollama:    { model: "qwen2.5:7b",        base: "http://localhost:11434/v1", needsKey: false },
+  custom:    { model: "",                  base: "", needsKey: false },
+};
+function applyPreset() {
+  const p = PROVIDERS[provEl.value];
+  modelEl.value = p.model; baseEl.value = p.base;
+}
+provEl.addEventListener("change", applyPreset);
+applyPreset();
+
+// Mirrors ask.py's SYSTEM_PROMPT.
+const SYSTEM_PROMPT = `You are Cyber-Witten, an AI grounded exclusively in Edward Witten's papers. Answer using ONLY the passages provided.
+
+Rules:
+- Cite every non-trivial claim inline using the exact passage IDs, e.g. [hep-th/9112056], [1106.4789], or [inspire:193975].
+- If the passages don't contain enough to answer, say so explicitly. Do NOT fall back to general knowledge or invent details.
+- Preserve Witten's terseness — be precise, don't pad with generic textbook background.
+- Math: use LaTeX (inline $...$ or display $$...$$).
+- If the passages span different years and the view evolved, note that.
+- If you must speculate beyond the passages, mark it clearly: "[outside corpus]".`;
+
+// Citation validator — a JS port of evals/validator.py + scripts/guardrail.py.
+const PAPER_ID_RE = /^(?:\d{4}\.\d{4,5}|[a-z][a-z-]*(?:\.[A-Z]{2})?\/\d{7}|inspire:\d+)(?:v\d+)?$/;
+const REFUSAL_RE = /do(?:es)? not (?:contain|support|cover|address|provide|mention|discuss|include)|cannot (?:be )?(?:answer|determine|found)|not enough (?:information|context|detail)|no (?:relevant )?(?:information|passages?|details?)|passages? do not|insufficient (?:information|context|detail)|unable to answer|outside (?:the )?corpus/i;
+const normId = (s) => s.trim().toLowerCase().replace(/v\d+$/, "");
+function extractCitations(text) {
+  const seen = new Set();
+  for (const m of text.matchAll(/\[([^\[\]]+)\]/g))
+    for (const raw of m[1].split(/[,;]/)) {
+      const tok = raw.trim();
+      if (PAPER_ID_RE.test(tok)) seen.add(normId(tok));
+    }
+  return [...seen];
+}
+function diagnose(answer, retrievedSet) {
+  const cited = extractCitations(answer);
+  const bad = cited.filter((c) => !retrievedSet.has(c));
+  if (bad.length) return { kind: "fabricated", bad, cited };
+  if (!cited.length && !REFUSAL_RE.test(answer)) return { kind: "uncited", bad, cited };
+  return { kind: null, bad, cited };
+}
+
+let texts = null;
+async function loadTexts() {
+  if (texts) return texts;
+  statusEl.textContent = "Loading passage texts (one-time, ~9MB)…";
+  const buf = await (await fetch("data/texts.json.gz")).arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let jsonText;
+  if (bytes[0] === 0x1f && bytes[1] === 0x8b) {  // raw gzip → decompress client-side
+    const stream = new Blob([buf]).stream().pipeThrough(new DecompressionStream("gzip"));
+    jsonText = await new Response(stream).text();
+  } else {  // a CDN already content-decoded it
+    jsonText = new TextDecoder().decode(bytes);
+  }
+  texts = JSON.parse(jsonText);
+  return texts;
+}
+
+async function callLLM(system, user) {
+  const prov = provEl.value, model = modelEl.value.trim(), base = baseEl.value.trim().replace(/\/$/, "");
+  const key = keyEl.value.trim();
+  if (prov === "anthropic") {
+    const r = await fetch(base + "/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({ model, max_tokens: 1500, system, messages: [{ role: "user", content: user }] }),
+    });
+    if (!r.ok) throw new Error(`API ${r.status}: ${(await r.text()).slice(0, 300)}`);
+    return (await r.json()).content[0].text;
+  }
+  const r = await fetch(base + "/chat/completions", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: "Bearer " + (key || "not-required") },
+    body: JSON.stringify({ model, max_tokens: 1500,
+      messages: [{ role: "system", content: system }, { role: "user", content: user }] }),
+  });
+  if (!r.ok) throw new Error(`API ${r.status}: ${(await r.text()).slice(0, 300)}`);
+  return (await r.json()).choices[0].message.content;
+}
+
+function linkifyAnswer(text) {
+  return esc(text).replace(/\[((?:\d{4}\.\d{4,5}|[a-z][a-z-]*(?:\.[A-Z]{2})?\/\d{7}|inspire:\d+)(?:v\d+)?)\]/g,
+    (_, id) => `[<a href="${urlFor(normId(id))}" target="_blank" rel="noopener">${id}</a>]`);
+}
+
+async function generateAnswer(question, scored) {
+  const prov = provEl.value;
+  const configured = PROVIDERS[prov].needsKey ? keyEl.value.trim() : (baseEl.value.trim() && modelEl.value.trim());
+  if (!byokEl.open || !configured) return;
+
+  answerEl.innerHTML = `<div class="answerbox"><span class="badge warn">⏳ generating (grounded, cite-or-fail)…</span></div>`;
+  try {
+    const T = await loadTexts();
+    const K = 8;
+    const top = scored.slice(0, K);
+    const retrievedSet = new Set(top.map(([, i]) => normId(meta[i].id)));
+    const context = top.map(([s, i], j) =>
+      `--- Passage ${j + 1} (sim=${s.toFixed(3)}) ---\nTitle: ${meta[i].title}\nID: ${meta[i].id} (${meta[i].year})\nText:\n${T[i]}\n`).join("\n");
+    const allowed = [...retrievedSet].sort().join(", ");
+    const userMsg = `<question>\n${question}\n</question>\n\n<passages>\n${context}\n</passages>\n\nAnswer the question using only the passages above. Cite each claim.`;
+
+    let answer = await callLLM(SYSTEM_PROMPT, userMsg);
+    let d = diagnose(answer, retrievedSet);
+    let attempts = 1;
+    if (d.kind) {  // one corrective retry — same corrections as scripts/guardrail.py
+      const correction = d.kind === "fabricated"
+        ? `Your previous answer cited ${d.bad.join(", ")}, which ${d.bad.length === 1 ? "is" : "are"} NOT among the provided passage IDs. Every bracketed citation must be one of these exact IDs: ${allowed}. Rewrite citing ONLY those IDs; drop any claim the passages do not support. Do not invent or recall other paper IDs.`
+        : `Your previous answer included NO citations. Every non-trivial claim must end with a passage ID in square brackets, e.g. [hep-th/9112056], drawn ONLY from: ${allowed}. Rewrite the answer with those inline citations. If the passages genuinely do not support an answer, say so explicitly instead.`;
+      statusEl.textContent = `Citation check failed (${d.kind}) — retrying once…`;
+      answer = await callLLM(SYSTEM_PROMPT, userMsg + "\n\n" + correction);
+      d = diagnose(answer, retrievedSet);
+      attempts = 2;
+    }
+    const badge = d.kind
+      ? `<span class="badge warn">⚠️ ungrounded after ${attempts} attempts (${d.kind}${d.bad.length ? ": " + esc(d.bad.join(", ")) : ""})</span>`
+      : `<span class="badge ok">✅ grounded · ${d.cited.length} citation${d.cited.length === 1 ? "" : "s"} · ${attempts} attempt${attempts === 1 ? "" : "s"}</span>`;
+    answerEl.innerHTML = `<div class="answerbox">${badge}<div class="atext">${linkifyAnswer(answer)}</div></div>`;
+    statusEl.textContent = `Top ${parseInt(kEl.value, 10)} papers below · answer grounded on the top-${K} passages`;
+  } catch (e) {
+    answerEl.innerHTML = `<div class="answerbox"><span class="badge err">❌ ${esc(String(e.message || e))}</span>
+      <div class="atext" style="color:var(--muted)">Common causes: wrong key, provider blocks browser calls (CORS), or a local server that is not running.</div></div>`;
+  }
+}
+
+goEl.addEventListener("click", search);
+qEl.addEventListener("keydown", (e) => { if (e.key === "Enter") search(); });
+
+$("examples").innerHTML = EXAMPLES.map((e) => `<span class="chip">${esc(e)}</span>`).join("");
+document.querySelectorAll(".chip").forEach((c, i) => c.addEventListener("click", () => {
+  qEl.value = EXAMPLES[i]; search();
+}));
+
+boot();
+</script>
+</body>
+</html>
