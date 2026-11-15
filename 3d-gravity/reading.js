@@ -12,7 +12,7 @@
     const q = search.value.trim().toLowerCase().replace(/[–—-]/g,' ');
     let count = 0;
     document.querySelectorAll('.chapter-row').forEach(row => {
-      const hay = row.dataset.search.replace(/[–—-]/g,' ');
+      const hay = (row.dataset.search + ' ' + row.getAttribute('href')).replace(/[–—-]/g,' ');
       row.hidden = !q.split(/\s+/).every(word => hay.includes(word));
       if (!row.hidden) count++;
     });
