@@ -1,0 +1,146 @@
+[
+  {
+    "volume": "I",
+    "title": "Supersymmetric Field Theory (2D-10D)",
+    "pages": 248,
+    "pdf": "pdf/StringQFT_Volume_I.pdf",
+    "cover": "covers/I.jpg",
+    "sha256": "6980b357c037372d70483e17926dbe773dabe00de489653c09387816682ccd9e"
+  },
+  {
+    "volume": "II",
+    "title": "Physical String Preliminaries",
+    "pages": 154,
+    "pdf": "pdf/StringQFT_Volume_II.pdf",
+    "cover": "covers/II.jpg",
+    "sha256": "f63a304b3323969e93d28869dd4211d022f7d8fff17bd93c55523cde4e7e6fe5"
+  },
+  {
+    "volume": "III",
+    "title": "Brane Preliminaries",
+    "pages": 186,
+    "pdf": "pdf/StringQFT_Volume_III.pdf",
+    "cover": "covers/III.jpg",
+    "sha256": "2fe86c34bbd3074d2863c0edf131e6f9256e67472f63594ac282525b1c1dc2c4"
+  },
+  {
+    "volume": "IV",
+    "title": "Geometry Preliminaries",
+    "pages": 199,
+    "pdf": "pdf/StringQFT_Volume_IV.pdf",
+    "cover": "covers/IV.jpg",
+    "sha256": "459e266bcad25272acf08764769ebf02bf679819ec59ae1a1583206336734c54"
+  },
+  {
+    "volume": "V",
+    "title": "Topological String Preliminaries",
+    "pages": 196,
+    "pdf": "pdf/StringQFT_Volume_V.pdf",
+    "cover": "covers/V.jpg",
+    "sha256": "79976346d308b2a4f3881bf761ff376978c2c865798c9db8750161674501ec71"
+  },
+  {
+    "volume": "VI",
+    "title": "D-Branes at Orbifold Singularities",
+    "pages": 235,
+    "pdf": "pdf/StringQFT_Volume_VI.pdf",
+    "cover": "covers/VI.jpg",
+    "sha256": "94bfbcda1b2f94dfcd867d00e334b88ba5140d06c8d29812568d84ab81408371"
+  },
+  {
+    "volume": "VII",
+    "title": "Toric Singularities and Brane Tilings",
+    "pages": 224,
+    "pdf": "pdf/StringQFT_Volume_VII.pdf",
+    "cover": "covers/VII.jpg",
+    "sha256": "3431ed11d23a7140e8498bddfd2dd2a18b08825f9106609045f05d218653e8f0"
+  },
+  {
+    "volume": "VIII",
+    "title": "M2-Brane Probes and 3d SCFTs",
+    "pages": 227,
+    "pdf": "pdf/StringQFT_Volume_VIII.pdf",
+    "cover": "covers/VIII.jpg",
+    "sha256": "43e490b6f19175783f14981e678678fced38464b5bc04f4f375dc779c68b1598"
+  },
+  {
+    "volume": "IX",
+    "title": "Hanany–Witten Constructions and Brane Dynamics",
+    "pages": 191,
+    "pdf": "pdf/StringQFT_Volume_IX.pdf",
+    "cover": "covers/IX.jpg",
+    "sha256": "ec51d26b68e38e68af489935df108e81ef4c48a06aeb9c8eefe452df87ddebcc"
+  },
+  {
+    "volume": "X",
+    "title": "Brane Webs and Magnetic Quivers",
+    "pages": 166,
+    "pdf": "pdf/StringQFT_Volume_X.pdf",
+    "cover": "covers/X.jpg",
+    "sha256": "81929707f7f4530766886850c3cf137c5bba3428770080e111e83e4e0428cf38"
+  },
+  {
+    "volume": "XI",
+    "title": "Type IIA Geometric Engineering",
+    "pages": 204,
+    "pdf": "pdf/StringQFT_Volume_XI.pdf",
+    "cover": "covers/XI.jpg",
+    "sha256": "640cfb6c2ed3a627f38f5d5f9547ea70722d92520715f8c75c237eb242a7325a"
+  },
+  {
+    "volume": "XII",
+    "title": "Type IIB Geometric Engineering",
+    "pages": 223,
+    "pdf": "pdf/StringQFT_Volume_XII.pdf",
+    "cover": "covers/XII.jpg",
+    "sha256": "0e54ff6941ef2f7719c12ee91afc275c7547ecadb6bfec6797051a5423ec21db"
+  },
+  {
+    "volume": "XIII",
+    "title": "M-Theory Geometric Engineering",
+    "pages": 219,
+    "pdf": "pdf/StringQFT_Volume_XIII.pdf",
+    "cover": "covers/XIII.jpg",
+    "sha256": "6368d3b212ba23b71e02a369aafb96bbe02bf1f109a2123ce25847c079ba6c68"
+  },
+  {
+    "volume": "XIV",
+    "title": "F-Theory: Geometric Dictionary and Four-Dimensional Theories",
+    "pages": 277,
+    "pdf": "pdf/StringQFT_Volume_XIV.pdf",
+    "cover": "covers/XIV.jpg",
+    "sha256": "f29ec3c942135200cbe891455bdeaee5a860daa4f2899651fa52f55f89cbd536"
+  },
+  {
+    "volume": "XV",
+    "title": "F-Theory: Six-Dimensional Theories, SCFTs and Little String Theory",
+    "pages": 254,
+    "pdf": "pdf/StringQFT_Volume_XV.pdf",
+    "cover": "covers/XV.jpg",
+    "sha256": "b9466fdda0b61c3828d0bb914ba8532f961804c3d0e589b418cd2743dce73be6"
+  },
+  {
+    "volume": "XVI",
+    "title": "M5-Brane Theories and Class S",
+    "pages": 184,
+    "pdf": "pdf/StringQFT_Volume_XVI.pdf",
+    "cover": "covers/XVI.jpg",
+    "sha256": "4596aafa5675fc0bfc8dd27e9f78e1ba9e7c77f4a858183e6984129770d801a1"
+  },
+  {
+    "volume": "XVII",
+    "title": "Protected Structures and Further M5 Compactifications",
+    "pages": 210,
+    "pdf": "pdf/StringQFT_Volume_XVII.pdf",
+    "cover": "covers/XVII.jpg",
+    "sha256": "b8658ac4460db1ef7d389d68d8acd14a4b3ec76804ea8215e52d8f36e09c67a7"
+  },
+  {
+    "volume": "XVIII",
+    "title": "Worldsheet Constructions of Quantum Field Theory",
+    "pages": 198,
+    "pdf": "pdf/StringQFT_Volume_XVIII.pdf",
+    "cover": "covers/XVIII.jpg",
+    "sha256": "4ec5a43e9070f0e9fe2a9a97d764fb67de121f79517427969874efc2cb2947d8"
+  }
+]
